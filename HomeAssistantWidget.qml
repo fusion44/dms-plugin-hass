@@ -613,6 +613,7 @@ PluginComponent {
         customIcons: root.customIcons
         visibilityRules: root.visibilityRules
         barThickness: root.barThickness
+        barConfig: root.barConfig
         showHomeIcon: pluginData.showHomeIcon !== undefined ? pluginData.showHomeIcon : true
         showButtonsOnStatusBar: pluginData.showButtonsOnStatusBar !== undefined ? pluginData.showButtonsOnStatusBar : true
     }
@@ -628,6 +629,7 @@ PluginComponent {
         customIcons: root.customIcons
         visibilityRules: root.visibilityRules
         barThickness: root.barThickness
+        barConfig: root.barConfig
         showHomeIcon: pluginData.showHomeIcon !== undefined ? pluginData.showHomeIcon : true
         showButtonsOnStatusBar: pluginData.showButtonsOnStatusBar !== undefined ? pluginData.showButtonsOnStatusBar : true
     }
