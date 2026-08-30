@@ -176,8 +176,13 @@ Singleton {
     }
 
     // Devices cache for entity grouping by device
+    // Pseudo-device for entities HA does not attach to a real one. Prefixed so it
+    // cannot collide with a real device id (HA uses 32-char hex).
+    readonly property string ungroupedDeviceId: "__ungrouped__"
     property var devicesCache: ({})
     property var entityToDeviceCache: ({})
+    // entity_id -> display precision (decimal places), from the entity registry.
+    property var entityPrecisionCache: ({})
     property bool devicesLoaded: false
     property bool devicesLoading: false
     property string lastMonitoredIdsStr: "" // Tracks structure to avoid jitter
@@ -1147,12 +1152,33 @@ Singleton {
         return translated || fallback || attrName;
     }
 
-    function formatEntityState(domain, state, unitOfMeasurement) {
+    function formatEntityState(domain, state, unitOfMeasurement, entityId) {
         const val = state || "?";
         const unit = unitOfMeasurement || "";
         if (unit && val !== "unavailable" && val !== "unknown")
-            return val + unit;
+            return formatNumericState(val, entityId) + unit;
         return translateEntityState(domain, val);
+    }
+
+    // Apply Home Assistant's display precision to a numeric state.
+    //
+    // Without this the raw state string is rendered verbatim, which for a float
+    // sensor means every digit the integration happens to send - an ESPHome CO2
+    // sensor reads "618.0009765625", because that is the binary32 value, and HA's
+    // own frontend only hides it by applying the precision below.
+    //
+    // Anything non-numeric is returned untouched, so enum and string states are
+    // unaffected.
+    function formatNumericState(value, entityId) {
+        if (!entityId)
+            return value;
+        const dp = entityPrecisionCache[entityId];
+        if (dp === undefined || dp === null)
+            return value;
+        const num = Number(value);
+        if (!isFinite(num))
+            return value;
+        return num.toFixed(dp);
     }
 
     // Get service definition for a specific domain and service
@@ -1196,16 +1222,46 @@ Singleton {
                     });
 
                     const newEntityToDeviceCache = {};
+                    const newEntityPrecisionCache = {};
 
                     entities.forEach(e => {
+                        // Display precision, if Home Assistant has one for this
+                        // entity. An explicit display_precision (set by the user in
+                        // HA) wins over the suggested_display_precision an
+                        // integration reports about itself - the same order HA's
+                        // own frontend uses.
+                        const sensorOpts = (e.options && e.options.sensor) || null;
+                        if (sensorOpts) {
+                            const dp = sensorOpts.display_precision !== undefined && sensorOpts.display_precision !== null
+                                ? sensorOpts.display_precision
+                                : sensorOpts.suggested_display_precision;
+                            if (dp !== undefined && dp !== null)
+                                newEntityPrecisionCache[e.entity_id] = dp;
+                        }
+
                         if (e.device_id && newDevicesCache[e.device_id]) {
                             newDevicesCache[e.device_id].entityIds.push(e.entity_id);
                             newEntityToDeviceCache[e.entity_id] = e.device_id;
+                            return;
                         }
+
+                        // Entities with no device are NOT dropped. Template
+                        // helpers, script/scene entities and anything else HA
+                        // does not attach to a device used to vanish here, with
+                        // no way to reach them from the device browser at all.
+                        if (!newDevicesCache[root.ungroupedDeviceId]) {
+                            newDevicesCache[root.ungroupedDeviceId] = {
+                                name: I18n.tr("Ungrouped", "Device group for entities with no device"),
+                                entityIds: []
+                            };
+                        }
+                        newDevicesCache[root.ungroupedDeviceId].entityIds.push(e.entity_id);
+                        newEntityToDeviceCache[e.entity_id] = root.ungroupedDeviceId;
                     });
 
                     devicesCache = newDevicesCache;
                     entityToDeviceCache = newEntityToDeviceCache;
+                    entityPrecisionCache = newEntityPrecisionCache;
                     devicesLoaded = true;
                     devicesLoading = false;
                     

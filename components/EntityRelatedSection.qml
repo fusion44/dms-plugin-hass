@@ -89,7 +89,7 @@ Column {
                         id: stateText
                         text: {
                             const translationVersion = HomeAssistantService.translationsVersion;
-                            return HomeAssistantService.formatEntityState(modelData.domain || "", modelData.state, modelData.unitOfMeasurement);
+                            return HomeAssistantService.formatEntityState(modelData.domain || "", modelData.state, modelData.unitOfMeasurement, modelData.entityId);
                         }
                         font.pixelSize: 10
                         font.weight: Font.Bold

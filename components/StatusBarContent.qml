@@ -237,7 +237,7 @@ Item {
                     text: {
                         const translationVersion = HomeAssistantService.translationsVersion;
                         var state = model.state;
-                        return HomeAssistantService.formatEntityState(model.domain || "", state, model.unitOfMeasurement);
+                        return HomeAssistantService.formatEntityState(model.domain || "", state, model.unitOfMeasurement, model.entityId);
                     }
                     font.pixelSize: Theme.barTextSize(root.barThickness)
                     color: Theme.widgetTextColor || Theme.surfaceText
@@ -277,7 +277,7 @@ Item {
                     text: {
                         const translationVersion = HomeAssistantService.translationsVersion;
                         var state = model.state;
-                        return HomeAssistantService.formatEntityState(model.domain || "", state, model.unitOfMeasurement);
+                        return HomeAssistantService.formatEntityState(model.domain || "", state, model.unitOfMeasurement, model.entityId);
                     }
                     font.pixelSize: Theme.barTextSize(root.barThickness)
                     color: Theme.widgetTextColor || Theme.surfaceText
